@@ -76,25 +76,27 @@ selection_metric = mae
 ## Audio BiLSTM Baseline
 
 The audio baseline used COVAREP acoustic features with a BiLSTM sequence
-encoder and mean pooling. The manual search was centered on a compact one-layer
-BiLSTM with low dropout and low learning rates, with nearby variants testing
-capacity, dropout, weight decay, and regression loss. Selection was based on
-validation MAE.
+encoder and mean pooling. The manual search varied model capacity, recurrent
+depth, dropout, learning rate, weight decay, and regression loss. Selection was
+based on validation MAE.
 
 | Config | BiLSTM Hidden | Layers | Dropout | Learning Rate | Weight Decay | Loss | Delta |
 |---:|---:|---:|---:|---:|---:|---|---:|
-| 1 | 128 | 1 | 0.10 | `1e-4` | `0` | MSE | - |
-| 2 | 128 | 1 | 0.10 | `7.5e-5` | `0` | MSE | - |
-| 3 | 96 | 1 | 0.10 | `7.5e-5` | `0` | MSE | - |
-| 4 | 160 | 1 | 0.10 | `7.5e-5` | `0` | MSE | - |
-| 5 | 128 | 1 | 0.15 | `7.5e-5` | `0` | MSE | - |
-| 6 | 128 | 1 | 0.20 | `7.5e-5` | `0` | MSE | - |
-| 7 | 128 | 2 | 0.15 | `7.5e-5` | `0` | MSE | - |
-| 8 | 128 | 1 | 0.10 | `7.5e-5` | `1e-5` | MSE | - |
-| 9 | 128 | 1 | 0.10 | `7.5e-5` | `1e-4` | MSE | - |
+| 1 | 64 | 1 | 0.05 | `1e-4` | `0` | MSE | - |
+| 2 | 96 | 1 | 0.10 | `1e-4` | `0` | MSE | - |
+| 3 | 128 | 1 | 0.10 | `1e-4` | `0` | MSE | - |
+| 4 | 160 | 1 | 0.15 | `7.5e-5` | `0` | MSE | - |
+| 5 | 192 | 1 | 0.20 | `7.5e-5` | `1e-5` | MSE | - |
+| 6 | 96 | 2 | 0.15 | `7.5e-5` | `0` | MSE | - |
+| 7 | 128 | 2 | 0.20 | `5e-5` | `1e-5` | MSE | - |
+| 8 | 160 | 2 | 0.25 | `5e-5` | `1e-4` | MSE | - |
+| 9 | 128 | 1 | 0.05 | `7.5e-5` | `0` | SmoothL1 | 1.0 |
 | 10 | 128 | 1 | 0.10 | `7.5e-5` | `0` | SmoothL1 | 1.0 |
 | 11 **selected** | 128 | 1 | 0.10 | `7.5e-5` | `0` | SmoothL1 | 0.5 |
-| 12 | 128 | 2 | 0.20 | `5e-5` | `0` | SmoothL1 | 1.0 |
+| 12 | 128 | 1 | 0.20 | `5e-5` | `0` | SmoothL1 | 0.5 |
+| 13 | 96 | 1 | 0.15 | `3e-5` | `1e-4` | SmoothL1 | 0.5 |
+| 14 | 160 | 1 | 0.15 | `3e-5` | `3e-4` | SmoothL1 | 1.0 |
+| 15 | 128 | 2 | 0.30 | `3e-5` | `1e-4` | SmoothL1 | 0.5 |
 
 Selected audio configuration:
 
