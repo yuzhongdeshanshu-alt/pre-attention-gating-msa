@@ -34,9 +34,9 @@ The repository is organized to support two use cases:
 - `train_text_bert_unimodal.py`: text-only BERT regression baseline.
 - `train_av_bilstm_unimodal.py`: audio-only and visual-only BiLSTM baselines.
 - `train_self_attention_NoGate.py`: multimodal self-attention model without pre-gating.
-- `train_self_attention_PreGate.py`: multimodal self-attention model with token-level pre-gating.
+- `train_self_attention_PreGate.py`: multimodal self-attention model with pre-gating.
 - `train_cross_attention_NoGate.py`: multimodal cross-attention model without pre-gating.
-- `train_cross_attention_PreGate.py`: multimodal cross-attention model with pre-softmax gating.
+- `train_cross_attention_PreGate.py`: multimodal cross-attention model with pre-gating.
 
 ### Shared Utilities
 
@@ -45,7 +45,7 @@ The repository is organized to support two use cases:
 
 ### Analysis and Result Folders
 
-- `Seed 10 Training Plot and Results/`: selected seed-10 training curves, result JSON files, test prediction CSVs, and per-condition test summaries.
+- `Seed 10 Training Plot and Results/`: training curves from one seed, result JSON files, test prediction CSVs, and per-condition test summaries for demonstration.
 - `10 runs Statistical Analysis/`: 10-run aggregate result CSV, statistical analysis script, ANOVA/t-test tables, and summary plots.
 - `Attention Analysis/`: final-layer attention extraction scripts, assembled per-sample attention CSVs, and attention visualization figures.
 
@@ -61,15 +61,26 @@ A CUDA-enabled PyTorch installation is recommended for training on GPU. The scri
 
 ## Data
 
-The experiments use CMU-MOSEI sentiment regression labels and aligned audio/visual computational sequence features.
+The experiments use CMU-MOSEI sentiment regression labels together with aligned audio and visual computational sequence features.
 
 ### Text and Labels
 
-The scripts load the HuggingFace dataset `vintp/CMU-Mosei-text`, which provides the train/validation/test utterance splits, transcripts, timestamps, and continuous sentiment labels.
+Raw text data and sentiment labels are obtained from the HuggingFace dataset [`vintp/CMU-Mosei-text`](https://huggingface.co/datasets/vintp/CMU-Mosei-text). The dataset provides the train/validation/test utterance splits used by the scripts:
+
+- train: 16,274 utterances
+- validation: 1,861 utterances
+- test: 4,653 utterances
+
+Each example contains the video id, utterance start/end timestamps, sentiment score, emotion labels, manual transcript, and ASR transcript. The text baseline uses the transcript fields and the continuous `sentiment` label. The audio and visual baselines use the video id and timestamps to align utterance-level labels with frame-level CSD features.
 
 ### Audio and Visual Features
 
-Audio and visual models use CMU-MOSEI computational sequence files in `.csd` format:
+The audio and visual baselines use CMU-MOSEI computational sequence files in `.csd` format. These files follow the [CMU Multimodal SDK](https://github.com/CMU-MultiComp-Lab/CMU-MultimodalSDK) data format. In our experiments:
+
+- audio features are read from `CMU_MOSEI_COVAREP.csd`
+- visual features are read from `CMU_MOSEI_OpenFace2.csd`
+
+The scripts expect the following data structure by default:
 
 ```text
 data/mosei_comp_seq/data/
@@ -77,7 +88,7 @@ data/mosei_comp_seq/data/
   CMU_MOSEI_OpenFace2.csd
 ```
 
-These files can be obtained from the CMU Multimodal SDK distribution when available, or from a compatible HuggingFace mirror such as `reeha-parkar/cmu-mosei-comp-seq`.
+Only these two CSD files are required for the audio and visual baselines. Other computational sequence files, such as labels, timestamped words, or word vectors, may be present in the same directory but are not required by these scripts.
 
 If the CSD files are stored elsewhere, pass the path explicitly:
 
@@ -155,9 +166,9 @@ The multimodal search was a limited manual search conducted on UCL Myriad HPC. F
 
 ## Recreating Result Tables and Figures
 
-### Seed-10 Training Curves and Test Summaries
+### Training Curves and Test Summaries
 
-The folder `Seed 10 Training Plot and Results/` contains the selected seed-10 training outputs for the seven reported models:
+The folder `Seed 10 Training Plot and Results/` contains training outputs from one seed for the seven reported models. These files demonstrate the training curves and per-model test summaries used for inspection:
 
 - Text-only BERT
 - Audio-only BiLSTM
@@ -205,7 +216,3 @@ See `Attention Analysis/README.md` for details on how the final-layer per-sample
 - Training outputs can vary slightly across hardware, CUDA/cuDNN versions, and PyTorch versions.
 - The included result folders allow the reported analysis and figures to be recreated without rerunning model training.
 - Checkpoints and feature caches are intentionally not required for plotting the included statistical and attention summaries.
-
-## License and Citation
-
-Citation information can be added with the associated manuscript. CMU-MOSEI data usage should follow the terms of the original dataset and feature providers.
