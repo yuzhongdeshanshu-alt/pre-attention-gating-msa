@@ -112,9 +112,5 @@ By default, the script reads from `final_layer_per_sample_attention/` and writes
 
 - `01_entropy_overview.png`
 - `02_self_macro_mass.png`
-- `visualization_summary.csv`
-- `attention_metric_mean_sd.csv`
-- `visualization_manifest.csv`
-- `README_visualizations.md`
 
 Use `--input-dir` or `--output-dir` to override these paths.

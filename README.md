@@ -206,8 +206,6 @@ This writes:
 
 - `01_entropy_overview.png`
 - `02_self_macro_mass.png`
-- `visualization_summary.csv`
-- `attention_metric_mean_sd.csv`
 
 See `Attention Analysis/README.md` for details on how the final-layer per-sample attention CSVs are produced from checkpoint-based extraction scripts.
 
