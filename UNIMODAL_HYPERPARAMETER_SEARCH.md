@@ -1,10 +1,15 @@
 # Unimodal Hyperparameter Search
 
-This document summarizes the local hyperparameter search used for the final
-unimodal CMU-MOSEI baselines. The search was not intended to be an exhaustive
-grid. Instead, we evaluated a small set of nearby configurations for each
-modality, varying the most relevant capacity, regularization, and optimization
-parameters. Final configurations were selected using validation MAE.
+This document summarizes the limited manual hyperparameter search used for the
+unimodal CMU-MOSEI baselines. Due to time and computational constraints, the
+search was conducted over a small set of key parameters rather than as an
+exhaustive grid search. For each modality, we varied the most relevant capacity,
+regularization, and optimization parameters, and selected configurations using
+validation MAE.
+
+The tables below report the main searched parameters. The complete selected
+runtime configurations are defined in `train_text_bert_unimodal.py` and
+`train_av_bilstm_unimodal.py`.
 
 ## Text BERT Baseline
 
@@ -22,7 +27,7 @@ learning rate around the selected configuration.
 | 6 | 96 | 0.3 | `1e-5` |
 | 7 | 128 | 0.4 | `5e-4` |
 
-Final selected text configuration:
+Selected text key parameters:
 
 ```text
 max_length = 96
