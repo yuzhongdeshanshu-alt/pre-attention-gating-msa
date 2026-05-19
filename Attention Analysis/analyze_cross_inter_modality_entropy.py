@@ -31,8 +31,10 @@ from transformers import BertTokenizerFast
 
 
 def find_code_root() -> Path:
-    # Allow the script to run either from the repository root or from this
-    # bundled analysis directory.
+    # The extraction scripts may be launched from the repository root, from the
+    # bundled analysis directory, or from a copied HPC working directory. Search
+    # for the training scripts and shared utilities instead of assuming a fixed
+    # local path.
     env_root = os.environ.get("MOSEI_CODE_ROOT")
     candidates: List[Path] = []
     if env_root:
@@ -72,6 +74,8 @@ import train_cross_attention_PreGate as cross_pre
 
 EPS = 1e-12
 CONFIG_NAME_KEYS = ("config_name", "final" + "_config_name")
+# Reuse the model's canonical ordering of target-to-source directions so the
+# extracted attention maps line up with the trained cross-attention layers.
 DIRECTIONAL_PAIRS = cross_no.DIRECTIONAL_PAIRS
 
 
@@ -101,7 +105,8 @@ def parse_args() -> argparse.Namespace:
         default=["include_special"],
         choices=["include_special", "content_only"],
     )
-    # Accepted by shared runner scripts; these options do not affect the exported metrics.
+    # These hidden arguments keep the script compatible with shared HPC runner
+    # templates. They are parsed but not used by this final-layer export.
     parser.add_argument("--none-predictions", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--pre-predictions", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--bootstrap-iters", type=int, default=0, help=argparse.SUPPRESS)
@@ -157,6 +162,8 @@ def load_test_split(
 
 
 def cross_module_for_condition(condition_key: str, results_data: Dict[str, object]):
+    # Select the matching model definition before checkpoint loading. This lets
+    # the same extraction code handle both the ungated and pre-gated variants.
     config_name = str(next((results_data.get(key) for key in CONFIG_NAME_KEYS if results_data.get(key)), "")).lower()
     if condition_key == "pre" or "pregate" in config_name or "pre" in config_name:
         return cross_pre
@@ -229,6 +236,9 @@ def run_cross_layer_with_attn(
     modal_hidden: Dict[str, torch.Tensor],
     modal_masks: Dict[str, torch.Tensor],
 ) -> Tuple[Dict[str, torch.Tensor], Dict[str, torch.Tensor]]:
+    # Mirror one trained cross-attention fusion layer and retain each
+    # target-to-source attention map before the hidden states are passed to the
+    # next layer. This keeps extraction aligned with the model forward pass.
     updated_hidden: Dict[str, torch.Tensor] = {}
     attn_by_pair: Dict[str, torch.Tensor] = {}
 
@@ -268,6 +278,9 @@ def run_cross_layer_with_attn(
 
 
 def pair_norm_entropy(attn: torch.Tensor, query_mask: torch.Tensor, source_mask: torch.Tensor) -> float:
+    # A cross-attention map is already one target-to-source direction. Entropy is
+    # therefore computed over the valid source positions for each valid query row
+    # and normalized by log(K_source) for comparability across sequence lengths.
     q_mask = query_mask.bool()
     s_mask = source_mask.bool()
     source_count = int(s_mask.sum().item())
@@ -310,6 +323,8 @@ def analyze_condition(
 
     for step, batch_cpu in enumerate(loader, start=1):
         batch = batch_to_device(batch_cpu, device)
+        # Start each batch with the modality encoders, then step through fusion
+        # layers manually so the selected layer's attention maps can be captured.
         modal_hidden, modal_masks = encode_modalities(model, batch)
         sample_indices = batch_cpu["sample_idx"].detach().cpu().numpy()
         hf_indices = batch_cpu["hf_index"].detach().cpu().numpy()
@@ -378,6 +393,8 @@ def finite_mean_sd(values: Iterable[object]) -> Tuple[int, float, float]:
 
 
 def summarize(rows: Sequence[Dict[str, object]]) -> List[Dict[str, object]]:
+    # Summary files are useful for checking extraction runs, while the final
+    # figure is generated from the per-sample table.
     out: List[Dict[str, object]] = []
     groups = sorted({(r["condition"], r["condition_label"], r["mask_mode"], r["layer"]) for r in rows})
     for condition, condition_label, mask_mode, layer in groups:
@@ -424,6 +441,8 @@ def main() -> None:
         raise FileNotFoundError(f"Missing feature cache: {args.feature_cache_path}")
 
     results_data = {spec.key: read_json(spec.results_path) for spec in specs}
+    # Both conditions share the same test split and cached A/V features; the
+    # NoGate config is used only to recover dataset and tokenizer settings.
     test_split, test_dataset, reports = load_test_split(dict(results_data["none"]["config"]), args.feature_cache_path)
     visual_dim = int(test_split["visual"].shape[-1])
     audio_dim = int(test_split["audio"].shape[-1])

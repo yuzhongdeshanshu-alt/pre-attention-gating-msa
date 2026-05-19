@@ -20,7 +20,8 @@ import os
 from pathlib import Path
 
 
-# Colors are fixed here so that regenerated figures remain consistent across runs.
+# Colors are fixed here so regenerated figures remain visually consistent. The
+# palette separates attention family first, then gating condition within family.
 C_NG = "#6B9FD4"  # Cross-attention without pre-gating, light blue.
 C_PG = "#114283"  # Cross-attention with pre-gating, dark blue.
 S_NG = "#74C476"  # Self-attention without pre-gating, light green.
@@ -85,6 +86,9 @@ def configure_matplotlib(output_dir: Path):
 
 
 def load_data(input_dir: Path):
+    # The plotting stage intentionally depends only on the four compact CSVs in
+    # final_layer_per_sample_attention; no checkpoints or feature caches are
+    # required to recreate the figures.
     import pandas as pd
 
     paths = {
@@ -112,6 +116,8 @@ def load_data(input_dir: Path):
 
 
 def add_bar_labels(ax, bars, dy: float) -> None:
+    # Place mean labels above the bars so the numbers remain readable without
+    # relying on separate summary tables.
     for bar in bars:
         height = bar.get_height()
         ax.text(
@@ -128,6 +134,8 @@ def plot_entropy_overview(plt, output_dir: Path, self_no, self_pre, cross_no, cr
     import matplotlib.patches as mpatches
     import numpy as np
 
+    # Figure 1 compares micro-level inter-modality selectivity. Each bar is the
+    # test-set mean of the per-sample normalized entropy values.
     labels = ["S-NoGate", "S-PreGate", "C-NoGate", "C-PreGate"]
     values = [
         self_no[SELF_ENTROPY_COL].mean(),
@@ -172,6 +180,9 @@ def plot_self_macro_mass(plt, output_dir: Path, self_no, self_pre):
     import matplotlib.patches as mpatches
     import numpy as np
 
+    # Figure 2 uses only self-attention because macro intra/inter allocation is
+    # defined over the unified self-attention matrix. Each value is a test-set
+    # mean of the row-weighted per-sample mass metric.
     labels = ["S-NoGate", "S-PreGate"]
     intra = [self_no["row_weighted_intra"].mean(), self_pre["row_weighted_intra"].mean()]
     inter = [self_no["row_weighted_inter"].mean(), self_pre["row_weighted_inter"].mean()]
@@ -232,6 +243,8 @@ def main() -> None:
     plt = configure_matplotlib(args.output_dir)
     self_no, self_pre, cross_no, cross_pre = load_data(args.input_dir)
 
+    # Keep this script focused on figure regeneration: all numeric aggregation is
+    # performed in memory and only the two PNG files are written.
     files = []
     files.append(plot_entropy_overview(plt, args.output_dir, self_no, self_pre, cross_no, cross_pre))
     files.append(plot_self_macro_mass(plt, args.output_dir, self_no, self_pre))

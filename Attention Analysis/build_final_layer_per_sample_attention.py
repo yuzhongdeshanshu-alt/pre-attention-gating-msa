@@ -33,6 +33,8 @@ LEGACY_SELF_ENTROPY_COL = "overall" + "_inter_norm_entropy_true"
 CROSS_ENTROPY_COL = "aggregate_pair_equal_norm_entropy"
 LEGACY_CROSS_ENTROPY_COL = "pair_equal_norm_entropy"
 
+# Keep the plot-input CSVs deliberately small: only identifiers and metrics
+# needed for the two published attention figures are retained.
 SELF_OUTPUT_COLUMNS = [
     "attention_family",
     "model_role",
@@ -56,6 +58,8 @@ CROSS_OUTPUT_COLUMNS = [
 
 def parse_args() -> argparse.Namespace:
     script_root = Path(__file__).resolve().parent
+    # Defaults match the original local analysis layout, while command-line
+    # arguments make the script usable on HPC outputs or copied result folders.
     downloads_root = script_root.parents[1] / "attention_distribution_analysis_downloads"
     parser = argparse.ArgumentParser(description="Assemble final-layer per-sample attention CSVs for plotting.")
     parser.add_argument(
@@ -111,6 +115,8 @@ def load_csv(path: Path):
 
 
 def normalize_role(condition: object) -> str:
+    # Source scripts use short condition labels such as "none" and "pre". The
+    # final CSVs use figure-facing roles that are consistent across architectures.
     value = str(condition).strip().lower()
     if value in {"none", "nogate", "no_gate", "no-gate"}:
         return "NoGate"
@@ -161,6 +167,9 @@ def build_final_csvs(args: argparse.Namespace):
     cross_entropy["model_role"] = cross_entropy["condition"].map(normalize_role)
 
     merge_keys = ["model_role", "layer", "sample_idx"]
+    # Join self-attention macro mass and micro entropy by sample so each
+    # self-attention condition has one compact per-sample table. Cross-attention
+    # contributes only the micro entropy metric used in the overview figure.
     self_final = allocation[
         merge_keys + ["condition_label", "row_weighted_intra", "row_weighted_inter"]
     ].merge(
@@ -176,6 +185,8 @@ def build_final_csvs(args: argparse.Namespace):
     cross_final.rename(columns={cross_entropy_col: CROSS_ENTROPY_COL}, inplace=True)
     cross_final["attention_family"] = "cross_attention"
 
+    # Fail early if one condition silently drops during filtering or joining; a
+    # missing role would otherwise produce a misleading figure without error.
     expected = {"NoGate", "PreGate"}
     if set(self_final["model_role"]) != expected:
         raise ValueError(f"Self final CSVs should contain roles {expected}, found {set(self_final['model_role'])}.")
@@ -190,6 +201,8 @@ def build_final_csvs(args: argparse.Namespace):
         "cross_pre": args.final_csv_dir / "cross_attention_PreGate_Final Layer.csv",
     }
 
+    # Split by model role to keep the plotting script simple and transparent: it
+    # loads one CSV per attention family and gating condition.
     for role, path in [("NoGate", paths["self_no"]), ("PreGate", paths["self_pre"])]:
         rows = (
             self_final[self_final["model_role"] == role]

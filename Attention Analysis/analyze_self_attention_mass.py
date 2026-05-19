@@ -31,8 +31,10 @@ from transformers import BertTokenizerFast
 
 
 def find_code_root() -> Path:
-    # Allow the script to run either from the repository root or from this
-    # bundled analysis directory.
+    # The extraction scripts may be launched from the repository root, from the
+    # bundled analysis directory, or from a copied HPC working directory. Search
+    # for the training scripts and shared utilities instead of assuming a fixed
+    # local path.
     env_root = os.environ.get("MOSEI_CODE_ROOT")
     candidates: List[Path] = []
     if env_root:
@@ -71,6 +73,8 @@ import train_self_attention_PreGate as self_pre
 
 
 MOD_LABELS = ["T", "V", "A"]
+# Result JSONs from different training runs may name the selected
+# configuration field slightly differently; both forms are accepted here.
 CONFIG_NAME_KEYS = ("config_name", "final" + "_config_name")
 
 
@@ -101,7 +105,8 @@ def parse_args() -> argparse.Namespace:
         default=["include_special"],
         choices=["include_special", "content_only"],
     )
-    # Accepted by shared runner scripts; these options do not affect the exported metrics.
+    # These hidden arguments keep the script compatible with shared HPC runner
+    # templates. They are parsed but not used by this final-layer export.
     parser.add_argument("--none-predictions", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--pre-predictions", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--case-sample-idx", type=int, default=-1, help=argparse.SUPPRESS)
@@ -159,6 +164,8 @@ def load_test_split(
 
 
 def self_module_for_condition(condition_key: str, results_data: Dict[str, object]):
+    # Select the matching model definition before checkpoint loading. This lets
+    # the same extraction code handle both the ungated and pre-gated variants.
     config_name = str(next((results_data.get(key) for key in CONFIG_NAME_KEYS if results_data.get(key)), "")).lower()
     if condition_key == "pregate" or "pregate" in config_name or "token" in config_name:
         return self_pre
@@ -196,6 +203,9 @@ def run_self_attention_layer_with_attn(
     hidden_state: torch.Tensor,
     valid_mask: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    # The training forward pass only needs predictions, so it does not expose
+    # attention maps. This helper mirrors one encoder layer and returns the
+    # post-softmax attention used by the metric functions below.
     block = layer.self_attn
     q = block._reshape_heads(block.q_proj(hidden_state))
     k = block._reshape_heads(block.k_proj(hidden_state))
@@ -231,6 +241,9 @@ def forward_with_attention(
     audio_mask = batch["audio_mask"].bool()
     bsz = input_ids.shape[0]
 
+    # Encode the three modalities exactly as in the trained model, then place
+    # them in the unified self-attention sequence: text, visual, audio. The same
+    # concatenation order is used later to construct modality masks.
     text_hidden, text_valid = model.text_encoder(input_ids, text_mask)
     visual_hidden, visual_valid = model.visual_encoder(visual, visual_mask)
     audio_hidden, audio_valid = model.audio_encoder(audio, audio_mask)
@@ -262,6 +275,8 @@ def make_modality_masks(
         if audio_mask.shape[1] > 0:
             audio_mask[:, 0] = False
 
+    # Convert modality-local masks into full sequence-length masks so they can
+    # index rows/columns of the concatenated attention matrix directly.
     bsz = text_mask.shape[0]
     total_len = model.max_tlen + model.max_vlen + model.max_alen
     full_masks = [torch.zeros((bsz, total_len), dtype=torch.bool, device=text_mask.device) for _ in range(3)]
@@ -277,6 +292,10 @@ def safe_float(value: torch.Tensor) -> float:
 
 
 def compute_macro_mass(attn_mean: torch.Tensor, modality_masks: List[torch.Tensor]) -> List[Dict[str, float]]:
+    # Macro allocation asks how much final-layer self-attention mass stays
+    # within a modality versus crossing to the other modalities. The calculation
+    # is performed per sample so downstream plotting can average over the test
+    # set without losing sample-level variability.
     rows: List[Dict[str, float]] = []
     for b_idx in range(attn_mean.shape[0]):
         # Each block entry is the attention mass from one query modality to one
@@ -296,6 +315,8 @@ def compute_macro_mass(attn_mean: torch.Tensor, modality_masks: List[torch.Tenso
                 block[q_idx, k_idx] = attn_mean[b_idx][q_mask][:, k_mask].sum() / q_count.clamp_min(1)
 
         intra_by_query = torch.diag(block)
+        # For each query modality, inter-modal mass is the sum of attention to
+        # the other two modalities. Intra-modal mass is the diagonal block.
         inter_by_query = torch.stack(
             [block[0, 1] + block[0, 2], block[1, 0] + block[1, 2], block[2, 0] + block[2, 1]]
         )
@@ -331,6 +352,9 @@ def analyze_condition(
 
     for step, batch_cpu in enumerate(loader, start=1):
         batch = batch_to_device(batch_cpu, device)
+        # Average heads before computing scalar metrics; the reported values
+        # describe layer-level allocation/selectivity rather than head-specific
+        # behavior.
         all_attn, masks = forward_with_attention(model, batch)  # attn: [B, heads, L, L]
         attn_mean = all_attn[layer_idx].mean(dim=1)
         sample_indices = batch_cpu["sample_idx"].detach().cpu().numpy()
@@ -383,6 +407,8 @@ def finite_mean_sd(values: Iterable[object]) -> Tuple[int, float, float]:
 
 
 def summarize(rows: Sequence[Dict[str, object]]) -> List[Dict[str, object]]:
+    # Summary files are kept for auditability on HPC runs; the public plotting
+    # path uses the per-sample CSVs assembled by build_final_layer_per_sample_attention.py.
     out: List[Dict[str, object]] = []
     groups = sorted({(r["condition"], r["condition_label"], r["mask_mode"], r["layer"]) for r in rows})
     for condition, condition_label, mask_mode, layer in groups:
@@ -431,6 +457,8 @@ def main() -> None:
         raise FileNotFoundError(f"Missing feature cache: {args.feature_cache_path}")
 
     results_data = {spec.key: read_json(spec.results_path) for spec in specs}
+    # Both conditions share the same test split and cached A/V features; the
+    # NoGate config is used only to recover dataset and tokenizer settings.
     test_split, test_dataset, reports = load_test_split(dict(results_data["none"]["config"]), args.feature_cache_path)
     visual_dim = int(test_split["visual"].shape[-1])
     audio_dim = int(test_split["audio"].shape[-1])

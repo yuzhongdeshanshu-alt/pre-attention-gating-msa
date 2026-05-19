@@ -31,8 +31,10 @@ from transformers import BertTokenizerFast
 
 
 def find_code_root() -> Path:
-    # Allow the script to run either from the repository root or from this
-    # bundled analysis directory.
+    # The extraction scripts may be launched from the repository root, from the
+    # bundled analysis directory, or from a copied HPC working directory. Search
+    # for the training scripts and shared utilities instead of assuming a fixed
+    # local path.
     env_root = os.environ.get("MOSEI_CODE_ROOT")
     candidates: List[Path] = []
     if env_root:
@@ -71,6 +73,8 @@ import train_self_attention_PreGate as self_pre
 
 
 EPS = 1e-12
+# Result JSONs from different training runs may name the selected
+# configuration field slightly differently; both forms are accepted here.
 CONFIG_NAME_KEYS = ("config_name", "final" + "_config_name")
 
 
@@ -100,7 +104,8 @@ def parse_args() -> argparse.Namespace:
         default=["include_special"],
         choices=["include_special", "content_only"],
     )
-    # Accepted by shared runner scripts; these options do not affect the exported metrics.
+    # These hidden arguments keep the script compatible with shared HPC runner
+    # templates. They are parsed but not used by this final-layer export.
     parser.add_argument("--none-predictions", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--pre-predictions", type=Path, default=None, help=argparse.SUPPRESS)
     parser.add_argument("--bootstrap-iters", type=int, default=0, help=argparse.SUPPRESS)
@@ -156,6 +161,8 @@ def load_test_split(
 
 
 def self_module_for_condition(condition_key: str, results_data: Dict[str, object]):
+    # Select the matching model definition before checkpoint loading. This lets
+    # the same extraction code handle both the ungated and pre-gated variants.
     config_name = str(next((results_data.get(key) for key in CONFIG_NAME_KEYS if results_data.get(key)), "")).lower()
     if condition_key == "pregate" or "pregate" in config_name or "token" in config_name:
         return self_pre
@@ -193,6 +200,9 @@ def run_self_attention_layer_with_attn(
     hidden_state: torch.Tensor,
     valid_mask: torch.Tensor,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    # The training forward pass only needs predictions, so it does not expose
+    # attention maps. This helper mirrors one encoder layer and returns the
+    # post-softmax attention used by the metric functions below.
     block = layer.self_attn
     q = block._reshape_heads(block.q_proj(hidden_state))
     k = block._reshape_heads(block.k_proj(hidden_state))
@@ -228,6 +238,9 @@ def forward_with_attention(
     audio_mask = batch["audio_mask"].bool()
     bsz = input_ids.shape[0]
 
+    # Encode the three modalities exactly as in the trained model, then place
+    # them in the unified self-attention sequence: text, visual, audio. The same
+    # concatenation order is used later to construct modality masks.
     text_hidden, text_valid = model.text_encoder(input_ids, text_mask)
     visual_hidden, visual_valid = model.visual_encoder(visual, visual_mask)
     audio_hidden, audio_valid = model.audio_encoder(audio, audio_mask)
@@ -259,6 +272,8 @@ def make_modality_masks(
         if audio_mask.shape[1] > 0:
             audio_mask[:, 0] = False
 
+    # Convert modality-local masks into full sequence-length masks so they can
+    # index rows/columns of the concatenated attention matrix directly.
     bsz = text_mask.shape[0]
     total_len = model.max_tlen + model.max_vlen + model.max_alen
     full_masks = [torch.zeros((bsz, total_len), dtype=torch.bool, device=text_mask.device) for _ in range(3)]
@@ -274,6 +289,9 @@ def safe_float(value: torch.Tensor) -> float:
 
 
 def compute_self_inter_entropy(attn_mean: torch.Tensor, modality_masks: List[torch.Tensor]) -> List[Dict[str, float]]:
+    # Micro selectivity focuses only on inter-modality attention. For each query
+    # row, same-modality keys are removed before entropy is computed, so the
+    # score describes how concentrated the cross-modal part of the row is.
     rows: List[Dict[str, float]] = []
     for b_idx in range(attn_mean.shape[0]):
         entropy_values: List[torch.Tensor] = []
@@ -299,6 +317,8 @@ def compute_self_inter_entropy(attn_mean: torch.Tensor, modality_masks: List[tor
                 continue
             probs = probs[valid_rows] / row_mass[valid_rows].clamp_min(EPS)
             ent = -(probs * torch.log(probs.clamp_min(EPS))).sum(dim=-1) / math.log(k_count)
+            # Accumulate sums and counts rather than averaging modality blocks
+            # equally; this gives each valid query row the same influence.
             entropy_values.append(ent.sum())
             entropy_counts.append(int(ent.numel()))
 
@@ -329,6 +349,9 @@ def analyze_condition(
 
     for step, batch_cpu in enumerate(loader, start=1):
         batch = batch_to_device(batch_cpu, device)
+        # Average heads before computing scalar metrics; the reported values
+        # describe layer-level allocation/selectivity rather than head-specific
+        # behavior.
         all_attn, masks = forward_with_attention(model, batch)
         attn_mean = all_attn[layer_idx].mean(dim=1)
         sample_indices = batch_cpu["sample_idx"].detach().cpu().numpy()
@@ -381,6 +404,8 @@ def finite_mean_sd(values: Iterable[object]) -> Tuple[int, float, float]:
 
 
 def summarize(rows: Sequence[Dict[str, object]]) -> List[Dict[str, object]]:
+    # Summary files are useful for checking extraction runs, while the final
+    # figure is generated from the per-sample table.
     out: List[Dict[str, object]] = []
     groups = sorted({(r["condition"], r["condition_label"], r["mask_mode"], r["layer"]) for r in rows})
     for condition, condition_label, mask_mode, layer in groups:
@@ -427,6 +452,8 @@ def main() -> None:
         raise FileNotFoundError(f"Missing feature cache: {args.feature_cache_path}")
 
     results_data = {spec.key: read_json(spec.results_path) for spec in specs}
+    # Both conditions share the same test split and cached A/V features; the
+    # NoGate config is used only to recover dataset and tokenizer settings.
     test_split, test_dataset, reports = load_test_split(dict(results_data["none"]["config"]), args.feature_cache_path)
     visual_dim = int(test_split["visual"].shape[-1])
     audio_dim = int(test_split["audio"].shape[-1])
