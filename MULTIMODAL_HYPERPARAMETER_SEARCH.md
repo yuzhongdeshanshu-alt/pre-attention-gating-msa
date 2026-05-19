@@ -25,11 +25,10 @@ fusion_hidden_size = {128, 256, 512}
 attention_heads = {4, 8}
 ```
 
-The selected scripts use a slightly more focused configuration after this manual
-screening. In particular, the self-attention models keep the multimodal hidden
-size aligned with the BERT hidden dimension (`hidden_size = 768`), while the
-cross-attention models use `cross_attn_dim = 128` and `fusion_dim = 128`.
-Validation MAE was used as the model-selection criterion.
+Validation MAE was used as the model-selection criterion. The tables below
+report the PreGate search candidates for each architecture family. The NoGate
+conditions were not independently tuned; they use the selected matched
+architecture and optimization settings with the gating mechanism removed.
 
 ## Selected Multimodal Configurations
 
@@ -74,34 +73,10 @@ below.
 | 19 | `5e-5` | `5e-5` | 48 | 0.50 | 768 | 8 | 2 | 1536 | 96 | 1.0 |
 | 20 | `1e-4` | `1e-4` | 48 | 0.30 | 768 | 8 | 3 | 3072 | 128 | 1.0 |
 
-## Self-Attention NoGate Matched Ablation Candidates
-
-The NoGate self-attention condition was matched to the PreGate search space,
-with the token-level gate removed. This table records the corresponding
-ungated configurations.
-
-| Config | LR | Batch | Dropout | Hidden | Heads | Layers | FFN Size | Gate Setting |
-|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 1 | `1e-3` | 16 | 0.10 | 512 | 4 | 1 | 1024 | removed |
-| 2 | `1e-3` | 32 | 0.30 | 512 | 8 | 1 | 1024 | removed |
-| 3 | `1e-4` | 16 | 0.10 | 768 | 4 | 1 | 1536 | removed |
-| 4 | `1e-4` | 32 | 0.10 | 768 | 8 | 1 | 1536 | removed |
-| 5 | `1e-4` | 32 | 0.30 | 768 | 8 | 1 | 1536 | removed |
-| 6 | `1e-4` | 48 | 0.10 | 768 | 8 | 2 | 1536 | removed |
-| 7 **selected** | `1e-4` | 48 | 0.10 | 768 | 8 | 2 | 1536 | removed |
-| 8 | `1e-4` | 48 | 0.10 | 768 | 8 | 2 | 1536 | removed |
-| 9 | `1e-4` | 48 | 0.30 | 768 | 8 | 2 | 1536 | removed |
-| 10 | `1e-4` | 32 | 0.10 | 768 | 8 | 3 | 1536 | removed |
-| 11 | `5e-5` | 32 | 0.10 | 768 | 8 | 2 | 1536 | removed |
-| 12 | `5e-5` | 32 | 0.10 | 768 | 8 | 2 | 1536 | removed |
-| 13 | `5e-5` | 48 | 0.10 | 768 | 8 | 2 | 1536 | removed |
-| 14 | `5e-5` | 48 | 0.30 | 768 | 8 | 2 | 1536 | removed |
-| 15 | `1e-5` | 32 | 0.10 | 768 | 8 | 2 | 1536 | removed |
-| 16 | `1e-5` | 32 | 0.30 | 768 | 8 | 2 | 1536 | removed |
-| 17 | `1e-4` | 48 | 0.10 | 768 | 4 | 2 | 1536 | removed |
-| 18 | `1e-4` | 48 | 0.10 | 768 | 8 | 2 | 3072 | removed |
-| 19 | `5e-5` | 48 | 0.50 | 768 | 8 | 2 | 1536 | removed |
-| 20 | `1e-4` | 48 | 0.30 | 768 | 8 | 3 | 3072 | removed |
+The corresponding Self-Attention NoGate condition uses the selected matched
+architecture and optimization settings, with the token-level pre-gating
+mechanism removed. This keeps the comparison focused on the gating ablation
+rather than on independent tuning differences between gated and ungated models.
 
 ## Cross-Attention PreGate Manual Search Candidates
 
@@ -132,40 +107,16 @@ The selected setting is marked below.
 | 19 | `3e-5` | 48 | 0.10 | 768 | 128 | 2 | 3072 | 128 | pre-gate |
 | 20 | `3e-5` | 48 | 0.30 | 768 | 256 | 2 | 3072 | 256 | pre-gate |
 
-## Cross-Attention NoGate Matched Ablation Candidates
-
-The NoGate cross-attention condition used the same architecture and optimizer
-settings as the PreGate cross-attention condition, with the pre-softmax gate
-removed.
-
-| Config | LR | Batch | Dropout | Hidden | Cross Dim | Layers | FFN Size | Fusion Dim | Gate Setting |
-|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| 1 | `1e-3` | 16 | 0.10 | 512 | 128 | 1 | 1024 | 128 | removed |
-| 2 | `1e-3` | 32 | 0.30 | 512 | 256 | 1 | 1024 | 256 | removed |
-| 3 | `1e-4` | 16 | 0.10 | 768 | 128 | 1 | 1536 | 128 | removed |
-| 4 | `1e-4` | 32 | 0.10 | 768 | 128 | 2 | 1536 | 128 | removed |
-| 5 | `1e-4` | 32 | 0.30 | 768 | 128 | 2 | 1536 | 256 | removed |
-| 6 | `5e-5` | 32 | 0.10 | 768 | 128 | 2 | 1536 | 128 | removed |
-| 7 | `5e-5` | 48 | 0.10 | 768 | 128 | 2 | 1536 | 128 | removed |
-| 8 **selected** | `3e-5` | 48 | 0.10 | 768 | 128 | 2 | 1536 | 128 | removed |
-| 9 | `3e-5` | 48 | 0.30 | 768 | 128 | 2 | 1536 | 128 | removed |
-| 10 | `3e-5` | 32 | 0.10 | 768 | 256 | 2 | 1536 | 128 | removed |
-| 11 | `3e-5` | 48 | 0.10 | 768 | 256 | 2 | 1536 | 256 | removed |
-| 12 | `1e-5` | 32 | 0.10 | 768 | 128 | 2 | 1536 | 128 | removed |
-| 13 | `1e-5` | 48 | 0.10 | 768 | 128 | 2 | 1536 | 128 | removed |
-| 14 | `1e-5` | 48 | 0.30 | 768 | 128 | 2 | 1536 | 256 | removed |
-| 15 | `5e-5` | 48 | 0.50 | 768 | 128 | 2 | 1536 | 128 | removed |
-| 16 | `5e-5` | 32 | 0.10 | 768 | 512 | 1 | 1536 | 256 | removed |
-| 17 | `1e-4` | 48 | 0.10 | 768 | 128 | 3 | 1536 | 128 | removed |
-| 18 | `3e-5` | 48 | 0.10 | 768 | 128 | 3 | 1536 | 128 | removed |
-| 19 | `3e-5` | 48 | 0.10 | 768 | 128 | 2 | 3072 | 128 | removed |
-| 20 | `3e-5` | 48 | 0.30 | 768 | 256 | 2 | 3072 | 256 | removed |
+The corresponding Cross-Attention NoGate condition uses the selected matched
+architecture and optimization settings, with the pre-softmax gating mechanism
+removed. This keeps the comparison focused on the gating ablation rather than
+on independent tuning differences between gated and ungated models.
 
 ## Notes on Ablation Interpretation
 
-The NoGate and PreGate models within each architecture family share the same
-selected optimizer, hidden dimensions, depth, dropout, and A/V BiLSTM encoder
-settings. Therefore, the ablation comparison isolates the effect of the gating
-mechanism as much as possible within a limited manual-search setting. The search
-is intentionally reported as limited manual tuning rather than as an exhaustive
-hyperparameter optimization procedure.
+Within each architecture family, NoGate and PreGate share the selected optimizer,
+hidden dimensions, depth, dropout, and A/V BiLSTM encoder settings. The only
+intended architectural difference is the removal or inclusion of the gating
+mechanism. The search is therefore reported as limited manual tuning for the
+gated model family, followed by matched ablation settings for the ungated
+comparison.
