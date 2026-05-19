@@ -22,6 +22,7 @@ The repository is organized to support two use cases:
 ├── 10 runs Statistical Analysis/
 ├── Attention Analysis/
 ├── Seed 10 Training Plot and Results/
+├── docs/
 ├── MULTIMODAL_HYPERPARAMETER_SEARCH.md
 ├── UNIMODAL_HYPERPARAMETER_SEARCH.md
 ├── requirements.txt
@@ -201,11 +202,10 @@ See `Attention Analysis/README.md` for details on how the final-layer per-sample
 
 ## Notes on Reproducibility
 
-- The selected model scripts use `seed = 10` by default unless overridden.
 - Training outputs can vary slightly across hardware, CUDA/cuDNN versions, and PyTorch versions.
 - The included result folders allow the reported analysis and figures to be recreated without rerunning model training.
 - Checkpoints and feature caches are intentionally not required for plotting the included statistical and attention summaries.
 
 ## License and Citation
 
-If this repository is released publicly, add the project license and citation information here. CMU-MOSEI data usage should follow the terms of the original dataset and feature providers.
+Citation information can be added with the associated manuscript. CMU-MOSEI data usage should follow the terms of the original dataset and feature providers.
