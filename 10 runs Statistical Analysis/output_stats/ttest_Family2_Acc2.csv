@@ -1,0 +1,5 @@
+Comparison,Purpose,t,raw p,adj p (Holm),Mean diff,Significant?
+C-NoGate vs Text-only,ungated cross-attn vs text,3.815,0.004**,0.005**,+0.028,Yes
+S-NoGate vs Text-only,ungated self-attn vs text,4.161,0.002**,0.005**,+0.038,Yes
+C-PreGate vs Text-only,gated cross-attn vs text,8.472,< .001***,< .001***,+0.059,Yes
+S-PreGate vs Text-only,gated self-attn vs text,12.488,< .001***,< .001***,+0.068,Yes

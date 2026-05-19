@@ -1,0 +1,3 @@
+plot_file,source_dir
+01_entropy_overview.png,final_layer_per_sample_attention
+02_self_macro_mass.png,final_layer_per_sample_attention

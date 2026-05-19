@@ -1,0 +1,5 @@
+Comparison,Purpose,t,raw p,adj p (Holm),Mean diff,Significant?
+C-PreGate vs C-NoGate,gating within Cross-attn,4.956,< .001***,0.003**,+0.031,Yes
+S-PreGate vs S-NoGate,gating within Self-attn,4.629,0.001**,0.004**,+0.030,Yes
+S-NoGate vs C-NoGate,architecture without gating,1.148,0.281,0.281,+0.009,No
+S-PreGate vs C-PreGate,architecture with gating,2.671,0.026*,0.051†,+0.009,No

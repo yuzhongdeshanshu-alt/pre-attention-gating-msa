@@ -1,0 +1,2 @@
+model_name,model_family,condition,run_name,config_name,seed,best_epoch,best_val_score,test_loss,test_mae,test_corr,test_acc7,test_acc2,test_f1,test_n_acc2
+unimodal/audio_bilstm,unimodal,audio_bilstm,a_w16_l1_h128_dp10_lr75e6_smooth05_seed10,audio_bilstm_final,42,5,-0.7665426731109619,,0.8058393597602844,0.32470765647843775,0.40640447023425746,0.6995486782720826,0.6789637350488787,4653

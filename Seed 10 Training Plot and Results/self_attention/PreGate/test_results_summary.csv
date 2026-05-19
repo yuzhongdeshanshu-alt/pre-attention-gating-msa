@@ -1,0 +1,2 @@
+model_name,model_family,condition,run_name,config_name,seed,best_epoch,best_val_score,test_loss,test_mae,test_corr,test_acc7,test_acc2,test_f1,test_n_acc2
+self_attention/PreGate,self_attention,PreGate,F2_gdim96_a10_lr1e4_gate1e4,self_attention_pregate_tokenlevel,10,15,-0.5455807447433472,0.5189217925071716,0.5400784015655518,0.7608797408712973,0.5282613367719751,0.851046255506608,0.8499321476172175,3632

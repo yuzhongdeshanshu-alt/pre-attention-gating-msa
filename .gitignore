@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# macOS and editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Matplotlib/cache files
+.mplconfig/
+.cache/
+
+# Large generated artifacts
+outputs/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.pkl
+*.pickle
+
+# Local data/cache directories
+data/
+feature_cache/
+myriad_results_downloads/

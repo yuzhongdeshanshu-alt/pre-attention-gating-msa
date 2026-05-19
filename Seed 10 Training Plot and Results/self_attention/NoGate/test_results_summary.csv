@@ -1,0 +1,2 @@
+model_name,model_family,condition,run_name,config_name,seed,best_epoch,best_val_score,test_loss,test_mae,test_corr,test_acc7,test_acc2,test_f1,test_n_acc2
+self_attention/NoGate,self_attention,NoGate,N2_none_lr1e4,self_attention_nogate,10,8,-0.5479328036308289,0.5516716241836548,0.5660842061042786,0.746506864383534,0.5112830431979368,0.8020631850419084,0.8078471304821536,4653

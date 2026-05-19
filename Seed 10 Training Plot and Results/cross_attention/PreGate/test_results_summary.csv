@@ -1,0 +1,2 @@
+model_name,model_family,condition,run_name,config_name,seed,best_epoch,best_val_score,test_loss,test_mae,test_corr,test_acc7,test_acc2,test_f1,test_n_acc2
+cross_attention/PreGate,cross_attention,PreGate,stab_b3c2_pre_frz_lr3e5_mlphead,cross_attention_pregate,10,11,-0.5532532334327698,0.5560626983642578,0.5606661438941956,0.7461821487532366,0.5233182892757361,0.8419603524229075,0.8421478653819523,3632

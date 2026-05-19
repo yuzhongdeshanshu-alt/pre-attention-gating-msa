@@ -1,0 +1,9 @@
+figure,attention_family,model,metric,n,mean,sd
+entropy_overview,Self,S-NoGate,self_inter_norm_entropy,4653,0.923700,0.045000
+entropy_overview,Self,S-PreGate,self_inter_norm_entropy,4653,0.671300,0.082000
+entropy_overview,Cross,C-NoGate,aggregate_pair_equal_norm_entropy,4653,0.889100,0.070000
+entropy_overview,Cross,C-PreGate,aggregate_pair_equal_norm_entropy,4653,0.647800,0.052000
+self_macro_mass,Self,S-NoGate,row_weighted_intra,4653,0.660400,0.045000
+self_macro_mass,Self,S-NoGate,row_weighted_inter,4653,0.339600,0.045000
+self_macro_mass,Self,S-PreGate,row_weighted_intra,4653,0.580200,0.057000
+self_macro_mass,Self,S-PreGate,row_weighted_inter,4653,0.419800,0.057000

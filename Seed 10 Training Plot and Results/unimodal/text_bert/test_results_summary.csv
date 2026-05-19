@@ -1,0 +1,2 @@
+model_name,model_family,condition,run_name,config_name,seed,best_epoch,best_val_score,test_loss,test_mae,test_corr,test_acc7,test_acc2,test_f1,test_n_acc2
+unimodal/text_bert,unimodal,text_bert,stable_cfg03_frz_len96_linear_smoothl1_b1_lr5e4_dp03_seed10,text_bert_stable_cfg03,10,6,-0.6147235035896301,,0.6514436602592468,0.6558257303888481,0.44659359552976574,0.7724049000644745,0.7811783312744328,4653

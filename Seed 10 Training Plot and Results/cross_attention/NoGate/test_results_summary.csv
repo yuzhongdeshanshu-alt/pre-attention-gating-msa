@@ -1,0 +1,2 @@
+model_name,model_family,condition,run_name,config_name,seed,best_epoch,best_val_score,test_loss,test_mae,test_corr,test_acc7,test_acc2,test_f1,test_n_acc2
+cross_attention/NoGate,cross_attention,NoGate,stab_b3c2_none_frz_lr3e5_mlphead,cross_attention_nogate,10,6,-0.5576665997505188,0.5496072769165039,0.5641990900039673,0.7459725767143186,0.5125725338491296,0.8160326670964969,0.8200185774488218,4653

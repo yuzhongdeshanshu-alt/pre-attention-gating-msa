@@ -1,0 +1,13 @@
+metric,value
+cross_entropy_gap,0.241300
+cross_entropy_nogate,0.889100
+cross_entropy_pregate,0.647800
+inter_delta_pregate_minus_nogate,0.080200
+intra_delta_pregate_minus_nogate,-0.080200
+nogate_inter,0.339600
+nogate_intra,0.660400
+pregate_inter,0.419800
+pregate_intra,0.580200
+self_entropy_gap,0.252400
+self_entropy_nogate,0.923700
+self_entropy_pregate,0.671300

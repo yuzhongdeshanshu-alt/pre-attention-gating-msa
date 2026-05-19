@@ -1,0 +1,2 @@
+model_name,model_family,condition,run_name,config_name,seed,best_epoch,best_val_score,test_loss,test_mae,test_corr,test_acc7,test_acc2,test_f1,test_n_acc2
+unimodal/video_bilstm,unimodal,video_bilstm,v_st07_h96_l1_dp55_lr7e5_wd3e4_smooth05_seed10,visual_bilstm_final,42,8,-0.7515194416046143,,0.7887362837791443,0.38114241284509914,0.415645819901139,0.7113690092413497,0.7012291608449133,4653
